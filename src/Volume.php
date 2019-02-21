@@ -85,6 +85,16 @@ class Volume extends FlysystemVolume
     public $secret = '';
 
     /**
+     * @var string endpoint
+     */
+    public $endpoint = '';
+
+    /**
+     * @var bool Whether this token caching should be used. Defaults to true.
+     */
+    public $tokenCaching = true;
+
+    /**
      * @var string Bucket to use
      */
     public $bucket = '';
@@ -148,10 +158,10 @@ class Volume extends FlysystemVolume
      * @return array
      * @throws \InvalidArgumentException
      */
-    public static function loadBucketList($keyId, $secret)
+    public static function loadBucketList($keyId, $secret, $endpoint, $tokenCaching)
     {
         // Any region will do.
-        $config = self::_buildConfigArray($keyId, $secret, 'us-east-1');
+        $config = self::_buildConfigArray($keyId, $secret, 'us-east-1', $endpoint, $tokenCaching);
 
         $client = static::client($config);
 
@@ -345,8 +355,10 @@ class Volume extends FlysystemVolume
         $keyId = Craft::parseEnv($this->keyId);
         $secret = Craft::parseEnv($this->secret);
         $region = $this->region;
+        $endpoint = Craft::parseEnv($this->endpoint);
+        $tokenCaching = $this->tokenCaching;
 
-        return self::_buildConfigArray($keyId, $secret, $region);
+        return self::_buildConfigArray($keyId, $secret, $region, $endpoint, $tokenCaching);
     }
 
     /**
@@ -357,11 +369,13 @@ class Volume extends FlysystemVolume
      * @param $region
      * @return array
      */
-    private static function _buildConfigArray($keyId = null, $secret = null, $region = null)
+    private static function _buildConfigArray($keyId = null, $secret = null, $region = null, $endpoint = null, $tokenCaching = true)
     {
         $config = [
             'region' => $region,
-            'version' => 'latest'
+            'version' => 'latest',
+            'endpoint' => empty($endpoint) ? null : $endpoint,
+            'use_path_style_endpoint' => !empty($endpoint)
         ];
 
         if (empty($keyId) || empty($secret)) {
@@ -370,15 +384,17 @@ class Volume extends FlysystemVolume
             $tokenKey = static::CACHE_KEY_PREFIX.md5($keyId.$secret);
             $credentials = new Credentials($keyId, $secret);
 
-            if (Craft::$app->cache->exists($tokenKey)) {
-                $cached = Craft::$app->cache->get($tokenKey);
-                $credentials->unserialize($cached);
-            } else {
-                $config['credentials'] = $credentials;
-                $stsClient = new StsClient($config);
-                $result = $stsClient->getSessionToken(['DurationSeconds' => static::CACHE_DURATION_SECONDS]);
-                $credentials = $stsClient->createCredentials($result);
-                Craft::$app->cache->set($tokenKey, $credentials->serialize(), static::CACHE_DURATION_SECONDS);
+            if ($tokenCaching) {
+                if (Craft::$app->cache->exists($tokenKey)) {
+                    $cached = Craft::$app->cache->get($tokenKey);
+                    $credentials->unserialize($cached);
+                } else {
+                    $config['credentials'] = $credentials;
+                    $stsClient = new StsClient($config);
+                    $result = $stsClient->getSessionToken(['DurationSeconds' => static::CACHE_DURATION_SECONDS]);
+                    $credentials = $stsClient->createCredentials($result);
+                    Craft::$app->cache->set($tokenKey, $credentials->serialize(), static::CACHE_DURATION_SECONDS);
+                }
             }
 
             // TODO Add support for different credential supply methods

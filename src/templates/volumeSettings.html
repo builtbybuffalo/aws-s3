@@ -22,6 +22,26 @@
     instructions: 'You can leave this field empty if you are using an EC2 instance with an applicable IAM role assignment.'|t('aws-s3')
 }) }}
 
+{{ forms.autosuggestField({
+	label: "Endpoint"|t('aws-s3'),
+	id: 'endpoint',
+	name: 'endpoint',
+	suggestEnvVars: true,
+	value: volume.endpoint,
+	errors: volume.getErrors('endpoint'),
+	class: 's3-endpoint',
+	instructions: 'You can use this field empty if using Amazon\'s S3 rather than something like minio.'|t('aws-s3')
+}) }}
+
+<div class="s3-token-caching">
+	{{ forms.lightswitchField({
+		label: "Cache token credentials?"|t('aws-s3'),
+		instructions: "Turn this off if you wish to pass the access key ID and secret key as-is."|t('aws-s3'),
+		name: 'tokenCaching',
+		on: volume.tokenCaching
+	}) }}
+</div>
+
 {% set bucketInput %}
     <div class="flex">
         {{ forms.select({

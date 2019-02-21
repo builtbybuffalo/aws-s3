@@ -2,6 +2,8 @@ $(document).ready(function() {
 
 var $s3AccessKeyIdInput = $('.s3-key-id'),
 	$s3SecretAccessKeyInput = $('.s3-secret-key'),
+	$s3EndpointInput = $('.s3-endpoint'),
+	$s3TokenCachingInput = $('.s3-token-caching input'),
 	$s3BucketSelect = $('.s3-bucket-select > select'),
 	$s3RefreshBucketsBtn = $('.s3-refresh-buckets'),
 	$s3RefreshBucketsSpinner = $s3RefreshBucketsBtn.parent().next().children(),
@@ -20,7 +22,9 @@ $s3RefreshBucketsBtn.click(function()
 
 	var data = {
 		keyId:  $s3AccessKeyIdInput.val(),
-		secret: $s3SecretAccessKeyInput.val()
+		secret: $s3SecretAccessKeyInput.val(),
+		endpoint: $s3EndpointInput.val(),
+		tokenCaching: $s3TokenCachingInput.val()
 	};
 
 	Craft.postActionRequest('aws-s3', data, function(response, textStatus)

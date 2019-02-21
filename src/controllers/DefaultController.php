@@ -37,9 +37,11 @@ class DefaultController extends BaseController
         $request = Craft::$app->getRequest();
         $keyId = Craft::parseEnv($request->getRequiredBodyParam('keyId'));
         $secret = Craft::parseEnv($request->getRequiredBodyParam('secret'));
+        $endpoint = Craft::parseEnv($request->getBodyParam('endpoint'));
+        $tokenCaching = $request->getBodyParam('tokenCaching');
 
         try {
-            return $this->asJson(Volume::loadBucketList($keyId, $secret));
+            return $this->asJson(Volume::loadBucketList($keyId, $secret, $endpoint, $tokenCaching));
         } catch (\Throwable $e) {
             return $this->asErrorJson($e->getMessage());
         }
